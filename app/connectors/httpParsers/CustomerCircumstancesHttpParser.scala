@@ -44,6 +44,10 @@ class CustomerCircumstancesHttpParser @Inject()(implicit appConfig: AppConfig) {
             valid => Right(valid)
           )
 
+        case Status.NOT_FOUND =>
+          Logger.debug(s"[CustomerCircumstancesHttpParser][read]: Status NOT_FOUND")
+          Left(ErrorModel(Status.NOT_FOUND, "Downstream error returned when retrieving CustomerDetails"))
+
         case status =>
           Logger.warn(s"[CustomerCircumstancesHttpParser][read]: Unexpected Response, Status $status returned")
           Left(ErrorModel(status,"Downstream error returned when retrieving CustomerDetails"))

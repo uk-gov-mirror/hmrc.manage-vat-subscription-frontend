@@ -19,14 +19,14 @@ package connectors.httpParsers
 import assets.CircumstanceDetailsTestConstants._
 import models.core.ErrorModel
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.HttpResponse
 import utils.TestUtil
 
 class CustomerCircumstancesHttpParserSpec extends TestUtil {
 
-  val successBadJson = Some(Json.obj("firstName" -> 1))
-  val errorModel = ErrorModel(Status.BAD_REQUEST, "Error Message")
+  val successBadJson: Option[JsObject] = Some(Json.obj("firstName" -> 1))
+  val errorModel: ErrorModel = ErrorModel(Status.BAD_REQUEST, "Error Message")
   val parser: CustomerCircumstancesHttpParser = inject[CustomerCircumstancesHttpParser]
 
   "The CustomerDetailsHttpParser" when {
@@ -43,23 +43,23 @@ class CustomerCircumstancesHttpParserSpec extends TestUtil {
 
       "return an ErrorModel" in {
         parser.CustomerCircumstanceReads.read("", "", HttpResponse(Status.OK, successBadJson)) shouldBe
-          Left(ErrorModel(Status.INTERNAL_SERVER_ERROR,"Invalid Json"))
+          Left(ErrorModel(Status.INTERNAL_SERVER_ERROR, "Invalid Json"))
       }
     }
 
-    "the http response status is BAD_REQUEST" should {
+    "the http response status is NOT_FOUND" should {
 
       "return an ErrorModel" in {
-        parser.CustomerCircumstanceReads.read("", "", HttpResponse(Status.BAD_REQUEST, None)) shouldBe
-          Left(ErrorModel(Status.BAD_REQUEST,"Downstream error returned when retrieving CustomerDetails"))
+        parser.CustomerCircumstanceReads.read("", "", HttpResponse(Status.NOT_FOUND, None)) shouldBe
+          Left(ErrorModel(Status.NOT_FOUND, "Downstream error returned when retrieving CustomerDetails"))
       }
     }
 
-    "the http response status unexpected" should {
+    "the http response status is unexpected" should {
 
       "return an ErrorModel" in {
         parser.CustomerCircumstanceReads.read("", "", HttpResponse(Status.SEE_OTHER, None)) shouldBe
-          Left(ErrorModel(Status.SEE_OTHER,"Downstream error returned when retrieving CustomerDetails"))
+          Left(ErrorModel(Status.SEE_OTHER, "Downstream error returned when retrieving CustomerDetails"))
       }
     }
   }
