@@ -84,14 +84,20 @@ trait MockAuth extends TestUtil with MockCustomerCircumstanceDetailsService {
       ec
     )
 
-  val mockInFlightPPOBPredicate: InFlightPPOBPredicate =
-    new InFlightPPOBPredicate(
+  val mockInFlightPPOBPredicateComponents: InFlightPPOBPredicateComponents =
+    new InFlightPPOBPredicateComponents(
       mockCustomerDetailsService,
       serviceErrorHandler,
       inject[ChangePendingView],
       mcc,
-      mockConfig,
-      ec
+      mockConfig
+    )
+
+  val mockInFlightPPOBPredicate: InFlightPPOBPredicate =
+    new InFlightPPOBPredicate(
+      mockInFlightPPOBPredicateComponents,
+      false,
+      "/redirect-location"
     )
 
   val mockInFlightRepaymentBankAccountPredicate: InFlightRepaymentBankAccountPredicate =

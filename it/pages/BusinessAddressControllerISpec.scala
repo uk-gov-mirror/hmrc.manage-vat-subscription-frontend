@@ -33,13 +33,15 @@ import stubs.{BusinessAddressStub, ContactPreferencesStub, VatSubscriptionStub}
 class BusinessAddressControllerISpec extends BasePageISpec {
 
   val session: Map[String, String] = Map(SessionKeys.CLIENT_VRN -> VRN)
-  val sessionVrnAndWelsh: Map[String, String] = Map(SessionKeys.CLIENT_VRN -> VRN, "PLAY_LANG" -> "cy")
+  val sessionVrnAndPredicatePassed: Map[String, String] = Map(SessionKeys.CLIENT_VRN -> VRN, SessionKeys.inFlightContactDetailsChangeKey -> "false")
+  val sessionVrnAndWelshAndPredicatePassed: Map[String, String] =
+    Map(SessionKeys.CLIENT_VRN -> VRN, "PLAY_LANG" -> "cy", SessionKeys.inFlightContactDetailsChangeKey -> "false")
   lazy val mockAppConfig: FrontendAppConfig = app.injector.instanceOf[FrontendAppConfig]
 
 
   "Calling the .show action" when {
 
-    def show(): WSResponse = get("/change-business-address", session)
+    def show(): WSResponse = get("/change-business-address", sessionVrnAndPredicatePassed)
 
     "the user is an Agent" when {
 
@@ -66,7 +68,8 @@ class BusinessAddressControllerISpec extends BasePageISpec {
 
   "Calling BusinessAddressController.initialiseJourney" when {
 
-    def show(additionalCookies: Map[String, String] = session): WSResponse = get("/change-business-address/ppob-handoff", additionalCookies)
+    def show(additionalCookies: Map[String, String] = sessionVrnAndPredicatePassed): WSResponse =
+      get("/change-business-address/ppob-handoff", additionalCookies)
 
     "Address-lookup-frontend Version2 is enabled" when {
 
@@ -85,7 +88,7 @@ class BusinessAddressControllerISpec extends BasePageISpec {
           BusinessAddressStub.postInitV2Journey(ACCEPTED, AddressLookupOnRampModel("redirect/url"))
 
           When("I call to show the Business Address change page")
-          val res = show(sessionVrnAndWelsh)
+          val res = show(sessionVrnAndWelshAndPredicatePassed)
 
 
           val alfBody = Json.stringify(Json.obj(

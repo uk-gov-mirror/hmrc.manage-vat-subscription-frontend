@@ -20,7 +20,7 @@ import audit.models.ContactPreferenceAuditModel
 import audit.{AuditService, ContactPreferenceAuditKeys}
 import common.SessionKeys
 import config.{AppConfig, ServiceErrorHandler}
-import controllers.predicates.{AuthPredicate, InFlightPPOBPredicate}
+import controllers.predicates.{AuthPredicate, InFlightPPOBPredicateComponents}
 import javax.inject.{Inject, Singleton}
 import models.User
 import models.contactPreferences.ContactPreference
@@ -29,14 +29,13 @@ import play.api.Logger
 import play.api.i18n.I18nSupport
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents, Result}
 import services.{AddressLookupService, ContactPreferenceService, CustomerCircumstanceDetailsService, PPOBService}
-import uk.gov.hmrc.play.bootstrap.controller.FrontendController
 import views.html.businessAddress.{ChangeAddressConfirmationView, ChangeAddressView}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BusinessAddressController @Inject()(val authenticate: AuthPredicate,
-                                          val inFlightPPOBCheck: InFlightPPOBPredicate,
+                                          val inFlightComps: InFlightPPOBPredicateComponents,
                                           addressLookupService: AddressLookupService,
                                           contactPreferenceService: ContactPreferenceService,
                                           ppobService: PPOBService,
@@ -45,15 +44,16 @@ class BusinessAddressController @Inject()(val authenticate: AuthPredicate,
                                           changeAddressConfirmationView: ChangeAddressConfirmationView,
                                           val serviceErrorHandler: ServiceErrorHandler,
                                           val auditService: AuditService,
-                                          val mcc: MessagesControllerComponents,
+                                          override val mcc: MessagesControllerComponents,
                                           implicit val appConfig: AppConfig,
-                                          implicit val ec: ExecutionContext) extends FrontendController(mcc) with I18nSupport {
+                                          implicit val ec: ExecutionContext) extends BaseController(inFlightComps, mcc) with I18nSupport {
 
-  val show: Action[AnyContent] = (authenticate andThen inFlightPPOBCheck).async { implicit user =>
+
+  val show: Action[AnyContent] = (authenticate andThen inFlightPPOBPredicate).async { implicit user =>
     Future.successful(Ok(changeAddressView()))
   }
 
-  val initialiseJourney: Action[AnyContent] = (authenticate andThen inFlightPPOBCheck).async { implicit user =>
+  val initialiseJourney: Action[AnyContent] = (authenticate andThen inFlightPPOBPredicate2).async { implicit user =>
     addressLookupService.initialiseJourney map {
       case Right(response) =>
         Redirect(response.redirectUrl)

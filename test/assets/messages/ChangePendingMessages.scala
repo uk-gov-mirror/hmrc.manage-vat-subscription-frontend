@@ -17,6 +17,9 @@
 package assets.messages
 
 object ChangePendingMessages extends BaseMessages {
+  val para1: String = "Until we accept that request, you cannot make a further change."
+  val para2: String = "HMRC accepts or rejects changes to VAT accounts within 2 working days."
+
   val title: String = "There is already a change pending" + titleSuffixUser
   val heading = "There is already a change pending"
   val p1 = "A recent request was made to change the "

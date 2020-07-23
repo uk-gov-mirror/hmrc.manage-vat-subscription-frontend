@@ -140,7 +140,8 @@ object IntegrationTestConstants {
     pendingChanges = Some(PendingChanges(
       ppob = Some(ppobMax),
       bankDetails = Some(bankDetails),
-      returnPeriod = Some(Jan)
+      returnPeriod = Some(Jan),
+      commsPreference = None
     )),
     partyType = partyType,
     commsPreference = Some(ContactPreference("DIGITAL"))

@@ -22,24 +22,28 @@ import play.api.libs.json.{Json, Reads, Writes, __}
 
 case class PendingChanges(ppob: Option[PPOB],
                           bankDetails: Option[BankDetails],
-                          returnPeriod: Option[ReturnPeriod])
+                          returnPeriod: Option[ReturnPeriod],
+                          commsPreference: Option[String])
 
 object PendingChanges {
 
   private val ppobPath = __ \ "PPOBDetails"
   private val bankDetailsPath =  __ \ "bankDetails"
   private val returnPeriodPath = __ \ "returnPeriod"
+  private val commsPreferencePath = __ \ "commsPreference"
 
   implicit val reads: Reads[PendingChanges] = (
     ppobPath.readNullable[PPOB] and
     bankDetailsPath.readNullable[BankDetails] and
-    returnPeriodPath.readNullable[ReturnPeriod]
+    returnPeriodPath.readNullable[ReturnPeriod] and
+    commsPreferencePath.readNullable[String]
   )(PendingChanges.apply _)
 
   implicit val writes: Writes[PendingChanges] = (
     ppobPath.writeNullable[PPOB] and
     bankDetailsPath.writeNullable[BankDetails] and
-    returnPeriodPath.writeNullable[ReturnPeriod]
+    returnPeriodPath.writeNullable[ReturnPeriod] and
+    commsPreferencePath.writeNullable[String]
   )(unlift(PendingChanges.unapply))
 
   val auditWrites: Writes[Option[PendingChanges]] = Writes {
@@ -48,14 +52,16 @@ object PendingChanges {
         "businessAddress" -> pending.ppob.isDefined,
         "repaymentBankDetails" -> pending.bankDetails.isDefined,
         "vatReturnDates" -> pending.returnPeriod.isDefined,
-        "emailAddress" -> pending.ppob.fold(false)(_.contactDetails.fold(false)(_.emailAddress.isDefined))
+        "emailAddress" -> pending.ppob.fold(false)(_.contactDetails.fold(false)(_.emailAddress.isDefined)),
+        "commsPreference" -> pending.commsPreference.isDefined
       )
     case _ =>
       Json.obj(
         "businessAddress" -> false,
         "repaymentBankDetails" -> false,
         "vatReturnDates" -> false,
-        "emailAddress" -> false
+        "emailAddress" -> false,
+        "commsPreference" -> false
       )
   }
 }

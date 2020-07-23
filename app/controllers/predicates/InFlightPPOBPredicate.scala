@@ -16,60 +16,58 @@
 
 package controllers.predicates
 
-import config.{AppConfig, ServiceErrorHandler}
-import javax.inject.Inject
+import common.SessionKeys.inFlightContactDetailsChangeKey
+import config.AppConfig
 import models.User
-import models.circumstanceInfo.CircumstanceDetails
 import play.api.Logger
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.Results.Conflict
-import play.api.mvc.{ActionRefiner, MessagesControllerComponents, Result}
-import services.CustomerCircumstanceDetailsService
+import play.api.mvc.Results.{Conflict, Redirect}
+import play.api.mvc.{ActionRefiner, Result}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.HeaderCarrierConverter
-import views.html.errors.ChangePendingView
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class InFlightPPOBPredicate @Inject()(customerCircumstancesService: CustomerCircumstanceDetailsService,
-                                      val serviceErrorHandler: ServiceErrorHandler,
-                                      changePendingView: ChangePendingView,
-                                      val mcc: MessagesControllerComponents,
-                                      implicit val appConfig: AppConfig,
-                                      implicit val executionContext: ExecutionContext)
+class InFlightPPOBPredicate (inFlightComps: InFlightPPOBPredicateComponents,
+                                      blockIfPendingPref: Boolean,
+                                      redirectURL: String)
   extends ActionRefiner[User, User] with I18nSupport {
 
-  override def messagesApi: MessagesApi = mcc.messagesApi
+  implicit val appConfig: AppConfig = inFlightComps.appConfig
+  implicit val executionContext: ExecutionContext = inFlightComps.mcc.executionContext
+  override def messagesApi: MessagesApi = inFlightComps.mcc.messagesApi
 
   override def refine[A](request: User[A]): Future[Either[Result, User[A]]] = {
 
     implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, Some(request.session))
     implicit val user: User[A] = request
 
-    customerCircumstancesService.getCustomerCircumstanceDetails(user.vrn).map {
-      case Right(circumstanceDetails) =>
-
-        circumstanceDetails.pendingChanges match {
-          case Some(changes) if changes.ppob.isDefined => comparePendingAndCurrent(circumstanceDetails)
-          case _ => Right(user)
-        }
-
-      case Left(error) => Logger.warn(s"[InflightPPOBPredicate][refine] - " +
-        s"The call to the GetCustomerInfo API failed. Error: ${error.message}")
-        Left(serviceErrorHandler.showInternalServerError)
+    user.session.get(inFlightContactDetailsChangeKey) match {
+      case Some("false") => Future.successful(Right(user))
+      case Some("commsPref") if blockIfPendingPref => Future.successful(Left(Conflict(inFlightComps.changePendingView())))
+      case Some("true") => Future.successful(Left(Conflict(inFlightComps.changePendingView())))
+      case _ => getCustomerInfoCall(user.vrn)
     }
   }
 
-  def comparePendingAndCurrent[A](circumstanceDetails: CircumstanceDetails)(implicit user: User[A]): Either[Result, User[A]] = {
+  private def getCustomerInfoCall[A](vrn: String)
+                                    (implicit hc: HeaderCarrier, request: User[A]): Future[Either[Result, User[A]]] =
+    inFlightComps.customerCircumstancesService.getCustomerCircumstanceDetails(vrn).map {
+      case Right(customerInfo) =>
+        customerInfo.pendingChanges match {
+          case Some(changes) if blockIfPendingPref && changes.commsPreference.isDefined =>
+            Left(Conflict(inFlightComps.changePendingView()).addingToSession(inFlightContactDetailsChangeKey -> "commsPref"))
+          case Some(changes) if changes.ppob.isDefined =>
+            Left(Conflict(inFlightComps.changePendingView()).addingToSession(inFlightContactDetailsChangeKey -> "true"))
+          case _ =>
+            Logger.debug("[InFlightPredicate][getCustomerInfoCall] - There are no in-flight changes. " +
+              "Redirecting user to the start of the journey.")
+            Left(Redirect(redirectURL).addingToSession(inFlightContactDetailsChangeKey -> "false"))
+        }
+      case Left(error) =>
+        Logger.warn("[InFlightPredicate][getCustomerInfoCall] - " +
+          s"The call to the GetCustomerInfo API failed. Error: ${error.message}")
+        Left(inFlightComps.serviceErrorHandler.showInternalServerError)
+    }
 
-      (circumstanceDetails.samePPOB, circumstanceDetails.sameEmail, circumstanceDetails.samePhone,
-        circumstanceDetails.sameMobile, circumstanceDetails.sameWebsite) match {
-        case (false, _, _, _, _) => Left(Conflict(changePendingView("changePending.ppob")))
-        case (_, false, _, _, _) => Left(Conflict(changePendingView("changePending.email")))
-        case (_, _, false, _, _) => Left(Conflict(changePendingView("changePending.landline")))
-        case (_, _, _, false, _) => Left(Conflict(changePendingView("changePending.mobile")))
-        case (_, _, _, _, false) => Left(Conflict(changePendingView("changePending.website")))
-        case _ => Right(user)
-      }
-  }
 }

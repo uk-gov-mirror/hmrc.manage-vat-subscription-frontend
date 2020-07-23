@@ -293,7 +293,7 @@ class CustomerCircumstanceDetailsViewSpec extends ViewBaseSpec with BaseMessages
               lazy val view = injectedView(
                 customerInformationNoPendingIndividual.copy(
                   ppob = ppobModelMaxEmailUnverified,
-                  pendingChanges = Some(PendingChanges(Some(ppobModelMaxPending), None, None))),
+                  pendingChanges = Some(PendingChanges(Some(ppobModelMaxPending), None, None, None))),
                 getPartialHtmlNotAgent
               )(user, messages, mockConfig)
               lazy implicit val document: Document = Jsoup.parse(view.body)

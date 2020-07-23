@@ -146,7 +146,8 @@ object CircumstanceDetailsTestConstants {
     pendingChanges = Some(PendingChanges(
       ppob = Some(ppobModelMax),
       bankDetails = Some(bankDetailsModelMax),
-      returnPeriod = Some(Mar)
+      returnPeriod = Some(Mar),
+      commsPreference = None
     )),
     partyType = Some(partyType),
     commsPreference = Some(ContactPreference("DIGITAL"))
@@ -170,7 +171,8 @@ object CircumstanceDetailsTestConstants {
     pendingChanges = Some(PendingChanges(
       ppob = Some(ppobModelMax),
       bankDetails = Some(bankDetailsModelMax),
-      returnPeriod = Some(Feb)
+      returnPeriod = Some(Feb),
+      commsPreference = Some("DIGITAL")
     )),
     partyType = Some(partyType),
     commsPreference = Some(ContactPreference("DIGITAL"))
@@ -194,7 +196,8 @@ object CircumstanceDetailsTestConstants {
     pendingChanges = Some(PendingChanges(
       ppob = Some(ppobModelMaxPending),
       bankDetails = Some(bankDetailsModelMax),
-      returnPeriod = Some(Mar)
+      returnPeriod = Some(Mar),
+      commsPreference = Some("DIGITAL")
     )),
     partyType = Some(partyType),
     commsPreference = Some(ContactPreference("DIGITAL"))
@@ -217,7 +220,8 @@ object CircumstanceDetailsTestConstants {
     pendingChanges = Some(PendingChanges(
       ppob = Some(ppobModelMax),
       bankDetails = Some(bankDetailsModelMax),
-      returnPeriod = Some(Mar)
+      returnPeriod = Some(Mar),
+      commsPreference = Some("DIGITAL")
     )),
     partyType = Some(partyType),
     commsPreference = Some(ContactPreference("DIGITAL"))
@@ -389,7 +393,7 @@ object CircumstanceDetailsTestConstants {
       case "website" => Some(ppobModelMax.copy(websiteAddress = None))
     }
     customerInformationPendingPPOBOrganisation.copy(
-      pendingChanges = Some(PendingChanges(pendingPPOB, None, None))
+      pendingChanges = Some(PendingChanges(pendingPPOB, None, None, None))
     )
   }
 
@@ -400,6 +404,7 @@ object CircumstanceDetailsTestConstants {
         Some(contactDetailsModelMax.copy(emailAddress = Some(emailPending))),
         Some(website)
       )),
+      None,
       None,
       None
     ))
@@ -413,6 +418,7 @@ object CircumstanceDetailsTestConstants {
         Some(website)
       )),
       None,
+      None,
       None
     ))
   )
@@ -425,6 +431,7 @@ object CircumstanceDetailsTestConstants {
         Some(website)
       )),
       None,
+      None,
       None
     ))
   )
@@ -433,7 +440,10 @@ object CircumstanceDetailsTestConstants {
     pendingChanges = Some(PendingChanges(
       Some(ppobModelMax.copy(
         contactDetails = Some(contactDetailsModelMax.copy(phoneNumber = None))
-      )), None, None
+      )),
+      None,
+      None,
+      None
     ))
   )
 
@@ -444,6 +454,7 @@ object CircumstanceDetailsTestConstants {
         Some(contactDetailsModelMax.copy(mobileNumber = Some(mobileNumberPending))),
         Some(website)
       )),
+      None,
       None,
       None
     ))
@@ -456,6 +467,7 @@ object CircumstanceDetailsTestConstants {
         Some(contactDetailsModelMax),
         Some(websitePending)
       )),
+      None,
       None,
       None
     ))

@@ -35,6 +35,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import views.html.businessAddress.{ChangeAddressConfirmationView, ChangeAddressView}
 import ContactPreference._
 import scala.concurrent.{ExecutionContext, Future}
+import common.SessionKeys.inFlightContactDetailsChangeKey
 
 class BusinessAddressControllerSpec extends ControllerBaseSpec with MockAddressLookupService with
   MockBusinessAddressService with MockContactPreferenceService {
@@ -45,7 +46,7 @@ class BusinessAddressControllerSpec extends ControllerBaseSpec with MockAddressL
 
     object TestBusinessAddressController extends BusinessAddressController(
       mockAuthPredicate,
-      mockInFlightPPOBPredicate,
+      mockInFlightPPOBPredicateComponents,
       mockAddressLookupService,
       mockContactPreferenceService,
       mockBusinessAddressService,
@@ -59,25 +60,45 @@ class BusinessAddressControllerSpec extends ControllerBaseSpec with MockAddressL
       ec
     )
 
-    "the user is authorised and does not have any conflicting inflight data" should {
+    "the user is authorised and does not have any conflicting inflight data" when {
 
-      lazy val result: Future[Result] = {
-        mockCustomerDetailsSuccess(customerInformationNoPendingIndividual)
-        TestBusinessAddressController.show(request)
+      "inFlightContactDetailsChangeKey doesn't exist" should {
+        lazy val result: Future[Result] = {
+          mockCustomerDetailsSuccess(customerInformationNoPendingIndividual)
+          TestBusinessAddressController.show(request)
+        }
+
+        "return SEE_OTHER (303)" in {
+          status(result) shouldBe Status.SEE_OTHER
+        }
+
+        "Redirect to the same method" in {
+          redirectLocation(result) shouldBe Some(controllers.routes.BusinessAddressController.show().url)
+        }
       }
 
-      "return OK (200)" in {
-        status(result) shouldBe Status.OK
+      "inFlightContactDetailsChangeKey is set to 'false'" should {
+        lazy val result: Future[Result] = {
+          mockCustomerDetailsSuccess(customerInformationNoPendingIndividual)
+          TestBusinessAddressController.show(request.withSession(
+            inFlightContactDetailsChangeKey -> "false"
+          ))
+        }
+
+        "return OK (200)" in {
+          status(result) shouldBe Status.OK
+        }
+
+        "return HTML" in {
+          contentType(result) shouldBe Some("text/html")
+          charset(result) shouldBe Some("utf-8")
+        }
+
+        s"have the heading '${ChangeAddressPageMessages.heading}'" in {
+          messages(Jsoup.parse(bodyOf(result)).select("h1").text) shouldBe ChangeAddressPageMessages.heading
+        }
       }
 
-      "return HTML" in {
-        contentType(result) shouldBe Some("text/html")
-        charset(result) shouldBe Some("utf-8")
-      }
-
-      s"have the heading '${ChangeAddressPageMessages.heading}'" in {
-        messages(Jsoup.parse(bodyOf(result)).select("h1").text) shouldBe ChangeAddressPageMessages.heading
-      }
     }
 
     "the user is authorised and has a pending change to their email address" should {
@@ -112,7 +133,7 @@ class BusinessAddressControllerSpec extends ControllerBaseSpec with MockAddressL
 
       new BusinessAddressController(
         mockAuthPredicate,
-        mockInFlightPPOBPredicate,
+        mockInFlightPPOBPredicateComponents,
         mockAddressLookupService,
         mockContactPreferenceService,
         mockBusinessAddressService,
@@ -211,7 +232,7 @@ class BusinessAddressControllerSpec extends ControllerBaseSpec with MockAddressL
 
       new BusinessAddressController(
         mockAuthPredicate,
-        mockInFlightPPOBPredicate,
+        mockInFlightPPOBPredicateComponents,
         mockAddressLookupService,
         mockContactPreferenceService,
         mockBusinessAddressService,
@@ -233,7 +254,9 @@ class BusinessAddressControllerSpec extends ControllerBaseSpec with MockAddressL
 
         lazy val result = {
           mockCustomerDetailsSuccess(customerInformationNoPendingIndividual)
-          controller.initialiseJourney(request)
+          controller.initialiseJourney(request.withSession(
+            inFlightContactDetailsChangeKey -> "false"
+          ))
         }
 
         "return redirect to the url returned" in {
@@ -267,18 +290,39 @@ class BusinessAddressControllerSpec extends ControllerBaseSpec with MockAddressL
       }
     }
 
-    "address lookup service returns an error" should {
+    "address lookup service returns an error" when {
+      "inFlightContactDetailsChangeKey doesn't exist" should {
+        lazy val controller = setup(addressLookupResponse = Left(errorModel))
+        lazy val result = {
+          mockCustomerDetailsSuccess(customerInformationNoPendingIndividual)
+          controller.initialiseJourney(request)
+        }
 
-      lazy val controller = setup(addressLookupResponse = Left(errorModel))
-      lazy val result = {
-        mockCustomerDetailsSuccess(customerInformationNoPendingIndividual)
-        controller.initialiseJourney(request)
+        "return SEE_OTHER (303)" in {
+          status(result) shouldBe Status.SEE_OTHER
+        }
+
+        "Redirect to the same method" in {
+          redirectLocation(result) shouldBe Some(controllers.routes.BusinessAddressController.initialiseJourney().url)
+        }
       }
 
-      "return InternalServerError" in {
-        status(result) shouldBe Status.INTERNAL_SERVER_ERROR
-        messages(Jsoup.parse(bodyOf(result)).title) shouldBe internalServerErrorTitle
+      "inFlightContactDetailsChangeKey is set to false" should {
+
+        lazy val controller = setup(addressLookupResponse = Left(errorModel))
+        lazy val result = {
+          mockCustomerDetailsSuccess(customerInformationNoPendingIndividual)
+          controller.initialiseJourney(request.withSession(
+            inFlightContactDetailsChangeKey -> "false"
+          ))
+        }
+
+        "return InternalServerError" in {
+          status(result) shouldBe Status.INTERNAL_SERVER_ERROR
+          messages(Jsoup.parse(bodyOf(result)).title) shouldBe internalServerErrorTitle
+        }
       }
+
     }
   }
 
@@ -286,7 +330,7 @@ class BusinessAddressControllerSpec extends ControllerBaseSpec with MockAddressL
 
     lazy val controller = new BusinessAddressController(
       mockAuthPredicate,
-      mockInFlightPPOBPredicate,
+      mockInFlightPPOBPredicateComponents,
       mockAddressLookupService,
       mockContactPreferenceService,
       mockBusinessAddressService,

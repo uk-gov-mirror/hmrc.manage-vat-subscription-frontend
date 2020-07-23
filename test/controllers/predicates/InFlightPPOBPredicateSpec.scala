@@ -16,13 +16,21 @@
 
 package controllers.predicates
 
+import assets.BaseTestConstants.vrn
 import assets.CircumstanceDetailsTestConstants._
 import assets.messages.ChangePendingMessages
 import mocks.MockAuth
+import models.User
 import org.jsoup.Jsoup
 import play.api.http.Status
+import play.api.mvc.AnyContentAsEmpty
+import common.SessionKeys.inFlightContactDetailsChangeKey
 
 class InFlightPPOBPredicateSpec extends MockAuth {
+
+  implicit lazy val testUser: User[AnyContentAsEmpty.type] = User[AnyContentAsEmpty.type](vrn,active = true)(request.withSession(
+    inFlightContactDetailsChangeKey -> "false"
+  ))
 
   "The InFlightPPOBPredicate" when {
 
@@ -30,7 +38,7 @@ class InFlightPPOBPredicateSpec extends MockAuth {
 
       lazy val result = {
         mockCustomerDetailsSuccess(customerInformationNoPendingIndividual)
-        await(mockInFlightPPOBPredicate.refine(user))
+        await(mockInFlightPPOBPredicate.refine(testUser))
       }
 
       "allow the request to pass through the predicate" in {
@@ -59,7 +67,7 @@ class InFlightPPOBPredicateSpec extends MockAuth {
 
       lazy val result = {
         mockCustomerDetailsSuccess(customerInformationModelMaxIndividual)
-        await(mockInFlightPPOBPredicate.refine(user))
+        await(mockInFlightPPOBPredicate.refine(testUser))
       }
 
       "allow the request to pass through the predicate" in {
